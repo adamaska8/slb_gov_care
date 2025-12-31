@@ -1,0 +1,864 @@
+cd "D:\PhotonUser\My Files\Google Drive\My Drive"
+set maxvar 30000
+do "GSS.do"
+save "GSS.dta", replace
+use GSS.dta, clear
+
+
+search gr0017
+search spost9_ado
+search spost13_ado
+ssc install khb
+ssc install oparallel
+ssc install gologit2
+ssc install estout
+
+
+* * * PREP VARS, MISSINGNESS, SURVEY WEIGHTS, OCC CONTROLS, DIAGNOSTICS & COMMON SAMPLE
+* * Prep vars
+* care_s
+rename HELPSICK helpsick
+tab helpsick, missing
+numlabel, add
+tab helpsick, missing
+
+recode helpsick (5 = 1) (4 = 2) (3 = 3) (2 = 4) (1 = 5), gen(care_s)
+tab care_s, missing
+lab var care_s "Should the government care for sick people?"
+label define care_s 1 "People should care for themselves" 2 "Between people should care for themselves and agree with both" 3 "Agree with both" 4 "Between agree with both and the government should care" 5 "The government should care"
+label values care_s care_s
+tab care_s, missing
+
+
+* care_p
+rename HELPPOOR helppoor
+tab helppoor, missing
+numlabel, add
+tab helppoor, missing
+
+recode helppoor (5 = 1) (4 = 2) (3 = 3) (2 = 4) (1 = 5), gen(care_p)
+tab care_p, missing
+lab var care_p "Should the government care for poor people?"
+label define care_p 1 "People should care for themselves" 2 "Between people should care for themselves and agree with both" 3 "Agree with both" 4 "Between agree with both and the government should care" 5 "The government should care"
+label values care_p care_p
+tab care_p, missing
+
+
+* care_b
+rename HELPBLK helpblk
+tab helpblk, missing
+numlabel, add
+tab helpblk, missing
+
+recode helpblk (5 = 1) (4 = 2) (3 = 3) (2 = 4) (1 = 5), gen(care_b)
+tab care_b, missing
+lab var care_b "Should the government care for Black people?"
+label define care_b 1 "People should care for themselves" 2 "Between people should care for themselves and agree with both" 3 "Agree with both" 4 "Between agree with both and the government should care" 5 "The government should care"
+label values care_b care_b
+tab care_b, missing
+
+
+* SLB
+rename OCC10 occ10
+tab occ10, missing 
+
+* judges = 2110, lawyers = 2100, registered nurse = 3255, physicians & surgeons = 3060, police and sheriffs patrol officers = 3850, preschool & kindergarten teacher = 2300, probation officers and correctional treatment specialists = 2015, secondary teachers = 2320, social workers = 2010, social and human service assistances = 2016, special education teachers = 2330, elementary and middle school teachers = 2310, Bailiffs, correctional officers, and jailers = 3800
+
+tab occ10 if occ10==3255 
+tab occ10 if occ10==2110
+tab occ10 if occ10==2100
+tab occ10 if occ10==3255
+tab occ10 if occ10==3060
+tab occ10 if occ10==3850
+tab occ10 if occ10==2300
+tab occ10 if occ10==2015
+tab occ10 if occ10==2320
+tab occ10 if occ10==2010
+tab occ10 if occ10==2016
+tab occ10 if occ10==2330
+tab occ10 if occ10==2310
+tab occ10 if occ10==3800
+
+* Non-working, working, slb - slb
+recode occ10 (.i = 0) (2010 2016 = 2) (2300 2310 2320 2330 = 3) (3060 3255 = 4) (2100 2110 = 5) (2015 3800 3850 = 6) (1/2009 2011/2014 2017/2099 2101/2109 2111/2299 2301/2309 2311/2319 2321/2329 2331/3059 3061/3254 3256/3799 3801/3849 3851/9830 = 1), gen(slb)
+lab var slb "Non-Working Public vs Working Public vs Street-Level Bureaucrats"
+label define slb 0 "Non-Working Public" 1 "Working Public" 2 "Social Workers & Assistants" 3 "Teachers" 4 "Nurses & Doctors" 5 "Lawyers & Judges" 6 "Police, Probation & Correction Officers", replace
+label values slb slb 
+tab slb, missing
+
+* General public vs slb lumped - genVslb
+recode slb (0 1 = 0) (2 3 4 5 6 = 1), gen(genVslb)
+lab var genVslb "Public (working & non-working) vs slbs together"
+label define genVslb 0 "Public" 1 "slb", replace
+label values genVslb
+tab genVslb, missing 
+
+* General public vs slb separate - genVslbind
+recode slb (0 1 = 0) (2 = 1) (3 = 2) (4 = 3) (5 = 4) (6 = 5), gen(genVslbind)
+lab var genVslbind "Public vs slbs separate"
+label define genVslbind 0 "Public" 1 "Social Workers & Assistants" 2 "Teachers" 3 "Nurses & Doctors" 4 "Lawyers & Judges" 5 "Police, Prob. & Corr. Officers", replace
+label values genVslbind genVslbind
+tab genVslbind, missing
+
+
+* Non-working, working, slb - w/o SHSA in SW cat - slb_sw
+recode occ10 (.i = 0) (2010 = 2) (2300 2310 2320 2330 = 3) (3060 3255 = 4) (2100 2110 = 5) (2015 3850 3800 = 6) (1/2009 2011/2014 2016/2099 2101/2109 2111/2299 2301/2309 2311/2319 2321/2329 2331/3059 3061/3254 3256/3799 3801/3849 3851/9830 = 1), gen(slb_sw)
+lab var slb_sw "Non-Working Public vs Working Public vs Street-Level Bureaucrats"
+label define slb_sw 0 "Non-Working Public" 1 "Working Public" 2 "Social Workers" 3 "Teachers" 4 "Nurses & Doctors" 5 "Lawyers & Judges" 6 "Police, Probation & Correction Officers", replace
+label values slb_sw slb_sw 
+tab slb_sw, missing
+
+* General public vs slb separate w/o SHSA - genVslbind_sw
+recode slb_sw (0 1 = 0) (2 = 1) (3 = 2) (4 = 3) (5 = 4) (6 = 5), gen(genVslbind_sw)
+lab var genVslbind_sw "Public vs slbs broken out"
+label define genVslbind_sw 0 "Public" 1 "Social Workers" 2 "Teachers" 3 "Nurses & Doctors" 4 "Lawyers & Judges" 5 "Police, Probation & Correction Officers", replace
+label values genVslbind_sw genVslbind_sw
+tab genVslbind_sw, missing
+
+
+* Political affiliation
+rename PARTYID partyid
+tab partyid, missing
+
+recode partyid (0 1 = 0) (2 3 4 = 1) (5 6 = 2) (7 = 3), gen(polaf)
+lab var polaf "Political Affiliation"
+label define polaf 0 "Democrat" 1 "Independent" 2 "Republican" 3 "Other"
+label values polaf polaf
+tab polaf, missing 
+
+
+* Age
+rename AGE age
+tab age, missing
+
+
+* Race
+tab RACE, missing
+
+recode RACE (1 = 0) (2 = 1) (3 = 2), gen(race)
+label define race 0 "White" 1 "Black" 2 "Other" 
+label values race race
+tab race, missing 
+
+
+* Region
+tab REGION, missing 
+
+recode REGION (2 = 0) (4 = 1) (3 = 2) (1 = 3), gen(region)
+label define region 0 "Midwest" 1 "West" 2 "South" 3 "Northeast"
+label value region region 
+tab region, missing  
+
+
+* Religion
+rename RELIG relig
+tab relig, missing
+
+recode relig (1 = 0) (2 3 5 6 7 8 9 10 11 12 13 = 1) (4 = 2), gen(relig_pon)
+label define relig_pon 0 "Protestant" 1 "Other" 2 "None"
+label values relig_pon relig_pon
+tab relig_pon, missing 
+
+
+* Education
+rename EDUC educ
+tab educ, missing
+
+recode educ (0 1 2 3 4 5 6 7 8 9 10 11 = 11) (12 = 12) (13 =13) (14= 14) (15 = 15) (16 = 16) (17 = 17) (18 = 18) (19 = 19) (20 = 20) (.d = .d) (.n = .n), gen(educ_bc)
+tab educ_bc, missing
+label define educ_bc 11 "Less than highschool" 12 "High school" 13 "One year of college" 14 "Two years of college" 15 "Three years of college" 16 "Four years of College" 17 "Five years of college" 18 "Six years of college" 19 "Seven years of college" 20 "8 or more years of college"
+label values educ_bc educ_bc
+tab educ_bc, missing
+lab var educ_bc "Education (bottom coded at 11 years)"
+
+
+* Sex
+rename SEX sex
+tab sex, missing
+
+recode sex (1 = 0) (2 = 1), gen(female)
+label define female 0 "Male" 1 "female"
+label values female female 
+tab female, missing 
+
+
+* Household income
+rename REALINC realinc
+tab realinc, missing
+
+clonevar realinc10k = realinc
+replace realinc10k = realinc10k/10000 if realinc10k < . 
+label var realinc10k "Household income per 10K, 1986$"
+tab realinc10k, missing
+
+gen poor1986 = realinc < 5360 if realinc < .
+label var poor1986 "Below 1986 poverty line ($5,360)"
+tab poor1986
+
+
+* Year
+rename YEAR year
+tab year, missing
+
+
+* Foreign born
+rename BORN born
+tab born, missing
+recode born (1 = 0) (2 = 1), gen(fborn)
+label define fborn 0 "Born in US" 1 "Foreign Born"
+label values fborn fborn
+tab fborn, missing 
+
+
+* * Missingness 
+local CONTROLS genVslbind polaf female age educ_bc realinc10k relig_pon race fborn region year 
+local ALLVARS `CONTROLS' 
+
+foreach v of local ALLVARS {
+    gen `v'_tmp = `v'
+    replace `v'_tmp = .a if `v'_tmp == .i
+}
+
+local TMPVARS : subinstr local ALLVARS " " "_tmp ", all
+local TMPVARS `TMPVARS'_tmp
+
+*  num: cells missing (., .d, .n, etc.) among non-.i cases
+*  denom: all non-.i cells
+tempname NUM DEN
+scalar `NUM' = 0
+scalar `DEN' = 0
+local MISSVARS
+foreach v of local ALLVARS {
+    gen byte miss_`v' = missing(`v'_tmp) & `v'_tmp != .a
+    quietly count if `v'_tmp != .a
+    scalar `DEN' = `DEN' + r(N)
+    quietly count if miss_`v' == 1
+    scalar `NUM' = `NUM' + r(N)
+    local MISSVARS `MISSVARS' miss_`v'
+}
+di as txt "Cell % missing: " ///
+    %6.2f (100 * (`NUM' / `DEN')) "%  (" %9.0f `NUM' " / " %9.0f `DEN' " cells)"
+
+egen miss_cnt = rowtotal(`MISSVARS')
+gen  miss_any = miss_cnt > 0 if !missing(miss_cnt)
+
+summ miss_any
+di as txt "Row % missing: " ///
+    %6.2f (100 * r(mean)) "%"
+
+count if miss_any == 1
+di as txt "Number of cases lost: " %9.0f r(N) 
+
+drop `TMPVARS' `MISSVARS' miss_cnt miss_any
+
+
+gen mcare_p = !missing(care_p)
+tab mcare_p, missing
+recode mcare_p (0 = 1) (1 = 0)
+tab mcare_p
+
+gen mcare_s = !missing(care_s)
+tab mcare_s, missing
+recode mcare_s (0 = 1) (1 = 0)
+tab mcare_s
+
+gen mcare_b = !missing(care_b)
+tab mcare_b, missing
+recode mcare_b (0 = 1) (1 = 0)
+tab mcare_b
+
+gen mgenVslbind = !missing(genVslbind)
+tab mgenVslbind, missing
+recode mgenVslbind (0 = 1) (1 = 0)
+tab mgenVslbind 
+
+gen mpolaf = !missing(polaf)
+tab mpolaf, missing
+recode mpolaf (0 = 1) (1 = 0)
+tab mpolaf 
+
+gen mage = !missing(age)
+tab mage, missing
+recode mage (0 = 1) (1 = 0)
+tab mage
+
+gen meduc_bc = !missing(educ_bc)
+tab meduc_bc, missing
+recode meduc_bc (0 = 1) (1 = 0)
+tab meduc_bc
+
+gen mfemale = !missing(female)
+tab mfemale, missing
+recode mfemale (0 = 1) (1 = 0)
+tab mfemale
+
+gen mrace = !missing(race)
+tab mrace, missing
+recode mrace (0 = 1) (1 = 0)
+tab mrace
+
+gen mrelig_pon = !missing(relig_pon)
+tab mrelig_pon, missing
+recode mrelig_pon (0 = 1) (1 = 0)
+tab mrelig_pon
+
+gen mregion = !missing(region)
+tab mregion, missing
+recode mregion (0 = 1) (1 = 0)
+tab mregion
+
+gen mrealinc10k = !missing(realinc10k)
+tab mrealinc10k, missing
+recode mrealinc10k (0 = 1) (1 = 0)
+tab mrealinc10k
+
+gen myear = !missing(year)
+tab myear, missing
+recode myear (0 = 1) (1 = 0)
+tab myear
+
+gen mhealth = !missing(health)
+tab mhealth, missing
+recode mhealth (0 = 1) (1 = 0)
+tab mhealth
+
+gen mfborn = !missing(fborn)
+tab mfborn, missing
+recode mfborn (0 = 1) (1 = 0)
+tab mfborn
+
+
+logit mgenVslbind i.polaf i.female c.age c.educ_bc c.realinc10k i.relig_pon i.race i.region i.year, or
+estimates store MAR_mgenVslbind
+
+logit mpolaf i.genVslbind i.female c.age c.educ_bc c.realinc10k i.relig_pon i.race i.region i.year, or 
+estimates store MAR_mpolaf
+
+logit mfemale i.genVslbind i.polaf c.age c.educ_bc c.realinc10k i.relig_pon i.race i.region i.year, or
+estimates store MAR_mfemale
+
+logit mage i.genVslbind i.polaf i.female c.educ_bc c.realinc10k i.relig_pon i.race i.region i.year, or 
+estimates store MAR_mage
+
+logit meduc_bc i.genVslbind i.polaf i.female c.age c.realinc10k i.relig_pon i.race i.region i.year, or
+estimates store MAR_meduc_bc
+
+logit mrealinc10k i.genVslbind i.polaf i.female c.age c.educ_bc i.relig_pon i.race i.region i.year, or 
+estimates store MAR_mrealinc10k
+
+logit mrelig_pon i.genVslbind i.polaf i.female c.age c.educ_bc c.realinc10k i.race i.region i.year, or
+estimates store MAR_mrelig_pon
+
+logit mrace i.genVslbind i.polaf i.female c.age c.educ_bc c.realinc10k i.relig_pon i.region i.year, or
+estimates store MAR_mrace
+
+logit mfborn i.genVslbind i.polaf i.female c.age i.race c.educ_bc c.realinc10k i.relig_pon i.region i.year, or
+estimates store MAR_mfborn
+
+logit mregion i.genVslbind i.polaf i.female c.age c.educ_bc c.realinc10k i.relig_pon i.race i.year, or
+estimates store MAR_mregion
+
+logit myear i.genVslbind i.polaf i.female c.age c.educ_bc c.realinc10k i.relig_pon i.race i.region, or 
+estimates store MAR_myear
+
+logit mcare_s i.genVslbind i.polaf i.female c.age c.educ_bc c.realinc10k i.relig_pon i.race i.region i.year, or 
+estimates store MAR_mcare_s
+
+logit mcare_p i.genVslbind i.polaf i.female c.age c.educ_bc c.realinc10k i.relig_pon i.race i.region i.year, or 
+estimates store MAR_mcare_p
+
+logit mcare_b i.genVslbind i.polaf i.female c.age c.educ_bc c.realinc10k i.relig_pon i.race i.region i.year, or 
+estimates store MAR_mcare_b
+
+
+* * Survey weights
+rename WTSSPS wtssps
+rename VSTRAT vstrat
+rename VPSU vpsu
+
+svyset [pweight = wtssps], strata(vstrat) psu(vpsu) singleunit(scaled)
+
+
+
+* * OCC controls
+gen ba_plus = (educ_bc >= 16) if !missing(educ_bc)
+gen nonwhite = (race != 0) if !missing(race)
+rename PRESTG10 prestg10
+	
+preserve
+keep if !missing(occ10)
+collapse (mean) occ_pct_female = female occ_pct_ba = ba_plus occ_mean_inc = realinc10k occ_mean_pres = prestg10 occ_pct_nonwhite = nonwhite [pweight = wtssps], by(occ10)
+save "occ_controls.dta", replace
+restore
+
+merge m:1 occ10 using "occ_controls.dta", keep(master match) nogen
+
+gen occ_miss = missing(occ_pct_female)
+	
+	foreach v in occ_pct_female occ_pct_ba occ_mean_inc occ_mean_pres occ_pct_nonwhite {
+    summarize `v' if !missing(`v')
+    gen z_`v' = (`v' - r(mean)) / r(sd)
+}
+
+foreach v in occ_pct_female occ_pct_ba occ_mean_inc occ_mean_pres occ_pct_nonwhite {
+    replace z_`v' = 0 if missing(z_`v')
+}
+
+
+gen slb_occ = inlist(occ10, 3255, 2110, 2100, 3060, 3850, 2300, 2015, 2320, 2010) | inlist(occ10, 2016, 2330, 2310)
+
+tab occ10 if slb_occ & !missing(occ_pct_female, occ_pct_ba, occ_mean_inc, occ_mean_pres, occ_pct_nonwhite)
+
+
+
+* * * LINEARITY, OUTLIERS, MULTICOLINEARITY, FIT
+* * Linearity 
+lowess care_s age
+lowess care_s educ_bc
+lowess care_s realinc10k
+
+lowess care_p age
+lowess care_p educ_bc
+lowess care_p realinc10k
+
+lowess care_b age
+lowess care_b educ_bc
+lowess care_b realinc10k
+
+
+* * Outliers
+sum age educ_bc realinc10k, detail 
+
+
+* care_s
+* Multicolinearity
+regress care_s i.genVslbind i.polaf i.female c.age c.educ_bc c.realinc10k i.relig_pon i.race i.region c.year i.fborn c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss
+vif
+
+* Fit
+svy: mlogit care_s i.genVslbind i.polaf i.female c.age i.health c.educ_bc c.realinc10k i.relig_pon i.race i.region i.year i.fborn c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss
+
+testparm i.genVslbind
+
+testparm i.polaf
+testparm i.relig_pon
+testparm i.race
+testparm i.region
+testparm i.health
+testparm i.year 
+
+test 1.fborn = 0 
+test 1.female = 0
+
+test c.age = 0
+test c.educ_bc = 0
+test c.realinc10k = 0
+
+
+* care_p
+* Multicolinearity
+regress care_p i.genVslbind i.polaf i.female c.age c.educ_bc c.realinc10k i.relig_pon i.race i.region i.year i.fborn c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss
+vif
+
+* Fit
+svy: mlogit care_p i.genVslbind i.polaf i.female c.age c.educ_bc c.realinc10k i.relig_pon i.race i.region i.year i.fborn c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss
+
+testparm i.genVslbind
+
+testparm i.polaf
+testparm i.relig_pon
+testparm i.race
+testparm i.region
+testparm i.year
+
+test 1.fborn = 0 
+test 1.female = 0
+
+test c.age = 0
+test c.educ_bc = 0
+test c.realinc10k = 0
+
+
+* care_b
+* Multicolinearity
+regress care_b i.genVslbind i.polaf i.female c.age c.educ_bc c.realinc10k i.relig_pon i.race i.region i.year i.fborn c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss
+vif
+
+* Fit
+svy: mlogit care_b i.genVslbind i.polaf i.female c.age c.educ_bc c.realinc10k i.relig_pon i.race i.region i.year i.fborn c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss
+
+testparm i.genVslbind
+
+testparm i.polaf
+testparm i.relig_pon
+testparm i.race
+testparm i.region
+testparm i.year 
+
+test 1.fborn = 0 
+test 1.female = 0
+
+test c.age = 0
+test c.educ_bc = 0
+test c.realinc10k = 0
+
+
+
+* * * Common sample
+gen ALL_COMPLETE_IC = 1 if !missing(care_p, care_s, care_b, genVslbind, race, female, age, educ_bc, realinc10k, polaf, relig_pon, region, year, fborn, z_occ_pct_female, z_occ_pct_ba, z_occ_mean_inc, z_occ_mean_pres, z_occ_pct_nonwhite) & wtssps > 0
+replace ALL_COMPLETE_IC = 0 if missing(ALL_COMPLETE_IC)
+
+* Counts of SLBs
+tab occ10 if inlist(occ10, 2010, 2016, 2300, 2320, 2330, 2310, 3255, 3060, 2110, 2100, 2015, 3850, 3800) & ALL_COMPLETE_IC==1
+
+
+
+* * * Descriptive Stats
+estpost summarize female age educ_bc realinc10k year fborn occ_pct_female occ_pct_ba occ_mean_inc occ_mean_pres occ_pct_nonwhite occ_miss if ALL_COMPLETE_IC==1
+
+esttab using "descriptives_IVs.csv", ///
+    cells("mean(fmt(3)) sd(fmt(3))") ///
+    label replace ///
+    title("Table X. Descriptive Statistics for Independent Variables")
+	
+tab race if ALL_COMPLETE_IC==1
+
+tab region if ALL_COMPLETE_IC==1
+
+tab polaf if ALL_COMPLETE_IC==1
+
+tab relig_pon if ALL_COMPLETE_IC==1
+
+summarize care_p care_s care_b if ALL_COMPLETE_IC==1
+
+
+
+* * * MAIN MODELS, PPs, AMEs APPENDIX & ROBUSTNESS
+* * Main models 
+svy, subpop(ALL_COMPLETE_IC): mlogit care_s i.genVslbind i.race i.fborn i.female c.age c.educ_bc c.realinc10k i.polaf i.relig_pon i.region i.year c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, baseoutcome(1) rrr
+est store MSIC
+estimates restore MSIC	
+esttab using "MSIC.csv", ///
+    cells("b(star fmt(2)) se(par fmt(2))") ///
+    eform label replace ///
+    star(* 0.05 ** 0.01 *** 0.001) ///
+    title("MSIC: Care for Sick People") cons
+
+svy, subpop(ALL_COMPLETE_IC): mlogit care_p i.genVslbind i.race i.fborn i.female c.age c.educ_bc c.realinc10k i.polaf i.relig_pon i.region i.year c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, baseoutcome(1) rrr
+est store MPIC
+estimates restore MPIC	
+esttab using "MPIC.csv", ///
+    cells("b(star fmt(2)) se(par fmt(2))") ///
+    eform label replace ///
+    star(* 0.05 ** 0.01 *** 0.001) ///
+    title("MPIC: Care for Poor People") cons
+
+svy, subpop(ALL_COMPLETE_IC): mlogit care_b i.genVslbind i.race i.fborn i.female c.age c.educ_bc c.realinc10k i.polaf i.relig_pon i.region i.year c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, baseoutcome(1) rrr
+est store MBIC
+estimates restore MBIC	
+esttab using "MBIC.csv", ///
+    cells("b(star fmt(2)) se(par fmt(2))") ///
+    eform label replace ///
+    star(* 0.05 ** 0.01 *** 0.001) ///
+    title("MIC: Care for Black People") cons
+		
+	
+* * Graphs of mean PPs
+estimates restore MSIC
+predict p1_s p2_s p3_s p4_s p5_s if e(sample), pr
+gen ev_sick = 1*p1_s + 2*p2_s + 3*p3_s + 4*p4_s + 5*p5_s if e(sample)
+graph bar ev_sick [pweight = wtssps] if ALL_COMPLETE_IC == 1, over(genVslbind, label(angle(75) labsize(small))) title("Sick People") ytitle("Predicted mean (1–5)") ylabel(1(0.5)5) blabel(bar, format(%3.2f)) name(g_ev_sick, replace)
+graph save g_ev_sick.gph, replace
+graph export "g_ev_sick.pdf", replace
+graph export "g_ev_sick.png", replace width(2000)
+
+
+estimates restore MPIC
+predict p1_p p2_p p3_p p4_p p5_p if e(sample), pr
+gen ev_poor = 1*p1_p + 2*p2_p + 3*p3_p + 4*p4_p + 5*p5_p if e(sample)
+graph bar ev_poor [pweight = wtssps] if ALL_COMPLETE_IC == 1, over(genVslbind, label(angle(75) labsize(small))) title("Poor People") ytitle("Predicted mean (1–5)") ylabel(1(0.5)5) blabel(bar, format(%3.2f)) name(g_ev_poor, replace)
+graph save g_ev_poor.gph, replace
+graph export "g_ev_poor.pdf", replace
+graph export "g_ev_poor.png", replace width(2000)
+
+
+estimates restore MBIC
+predict p1_b p2_b p3_b p4_b p5_b if e(sample), pr
+gen ev_black = 1*p1_b + 2*p2_b + 3*p3_b + 4*p4_b + 5*p5_b if e(sample)
+graph bar ev_black [pweight = wtssps] if ALL_COMPLETE_IC == 1, over(genVslbind, label(angle(75) labsize(small))) title("Black people") ytitle("Predicted mean (1–5)") ylabel(1(0.5)5) blabel(bar, format(%3.2f)) name(g_ev_black, replace)
+graph save g_ev_black.gph, replace
+graph export "g_ev_black.pdf", replace
+graph export "g_ev_black.png", replace width(2000)
+
+
+graph combine g_ev_sick.gph g_ev_poor.gph g_ev_black.gph, col(3) ycommon title("Mean predicted support for government care by outcome and institutional location") xsize(12) ysize(4)
+graph save g_ev_all.gph, replace
+graph export "g_ev_all.pdf", replace
+graph export "g_ev_all.png", replace width(2000)
+
+
+* * AMEs
+est restore MSIC
+margins, dydx(i.genVslbind) predict(outcome(1)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_SIC_MARG_1
+
+est restore MSIC
+margins, dydx(i.genVslbind) predict(outcome(2)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_SIC_MARG_2
+
+est restore MSIC
+margins, dydx(i.genVslbind) predict(outcome(3)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_SIC_MARG_3
+
+est restore MSIC
+margins, dydx(i.genVslbind) predict(outcome(4)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_SIC_MARG_4
+
+est restore MSIC
+margins, dydx(i.genVslbind) predict(outcome(5)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_SIC_MARG_5
+
+
+
+est restore MPIC
+margins, dydx(i.genVslbind) predict(outcome(1)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_PIC_MARG_1
+
+est restore MPIC
+margins, dydx(i.genVslbind) predict(outcome(2)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_PIC_MARG_2
+
+est restore MPIC
+margins, dydx(i.genVslbind) predict(outcome(3)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_PIC_MARG_3
+
+est restore MPIC
+margins, dydx(i.genVslbind) predict(outcome(4)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_PIC_MARG_4
+
+est restore MPIC
+margins, dydx(i.genVslbind) predict(outcome(5)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_PIC_MARG_5
+
+
+
+est restore MBIC
+margins, dydx(i.genVslbind) predict(outcome(1)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_BIC_MARG_1
+
+est restore MBIC
+margins, dydx(i.genVslbind) predict(outcome(2)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_BIC_MARG_2
+
+est restore MBIC
+margins, dydx(i.genVslbind) predict(outcome(3)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_BIC_MARG_3
+
+est restore MBIC
+margins, dydx(i.genVslbind) predict(outcome(4)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_BIC_MARG_4
+
+est restore MBIC
+margins, dydx(i.genVslbind) predict(outcome(5)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_BIC_MARG_5
+
+
+esttab M_SIC_MARG_1 M_SIC_MARG_2 M_SIC_MARG_3 M_SIC_MARG_4 M_SIC_MARG_5 using "AME_SIC.csv", ///
+	se nogaps label b(%9.3f) se(%9.3f) ///
+    star(* 0.05 ** 0.01 *** 0.001) compress replace ///
+    title("Average Marginal Effects of genVslbind on Pr(all levels) across Sick outcome") ///
+    mtitles("Care: level 1" "Care: level 2" "Care: level 3" "Care: level 4" "Care: level 5")
+
+esttab M_PIC_MARG_1 M_PIC_MARG_2 M_PIC_MARG_3 M_PIC_MARG_4 M_PIC_MARG_5 using "AME_PIC.csv", ///
+	se nogaps label b(%9.3f) se(%9.3f) ///
+    star(* 0.05 ** 0.01 *** 0.001) compress replace ///
+    title("Average Marginal Effects of genVslbind on Pr(all levels) across Poor outcome") ///
+    mtitles("Care: level 1" "Care: level 2" "Care: level 3" "Care: level 4" "Care: level 5")
+	
+	
+esttab M_BIC_MARG_1 M_BIC_MARG_2 M_BIC_MARG_3 M_BIC_MARG_4 M_BIC_MARG_5 using "AME_BIC.csv", ///
+	se nogaps label b(%9.3f) se(%9.3f) ///
+    star(* 0.05 ** 0.01 *** 0.001) compress replace ///
+    title("Average Marginal Effects of genVslbind on Pr(all levels) across Black outcome") ///
+    mtitles("Care: level 1" "Care: level 2" "Care: level 3" "Care: level 4" "Care: level 5")
+
+
+
+* * Appendix 
+* Split working and non-working public 
+svy, subpop(ALL_COMPLETE_IC): mlogit care_s i.slb i.race i.fborn i.female c.age c.educ_bc c.realinc10k i.polaf i.relig_pon i.region i.year c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite, baseoutcome(1) rrr
+est store MSICPS
+estimates restore MSICPS	
+esttab using "MSICPS.csv", ///
+    cells("b(star fmt(2)) se(par fmt(2))") ///
+    eform label replace ///
+    star(* 0.05 ** 0.01 *** 0.001) ///
+    title("MSICPS: Care for Sick People") nocons
+
+svy, subpop(ALL_COMPLETE_IC): mlogit care_p i.slb i.race i.fborn i.female c.age c.educ_bc c.realinc10k i.polaf i.relig_pon i.region i.year c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite, baseoutcome(1) rrr
+est store MPICPS
+estimates restore MPICPS	
+esttab using "MPICPS.csv", ///
+    cells("b(star fmt(2)) se(par fmt(2))") ///
+    eform label replace ///
+    star(* 0.05 ** 0.01 *** 0.001) ///
+    title("MPICPS: Care for Poor People") nocons
+
+svy, subpop(ALL_COMPLETE_IC): mlogit care_b i.slb i.race i.fborn i.female c.age c.educ_bc c.realinc10k i.polaf i.relig_pon i.region i.year c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite, baseoutcome(1) rrr
+est store MBICPS
+estimates restore MBICPS	
+esttab using "MBICPS.csv", ///
+    cells("b(star fmt(2)) se(par fmt(2))") ///
+    eform label replace ///
+    star(* 0.05 ** 0.01 *** 0.001) ///
+    title("MICPS: Care for Black People") nocons
+
+	
+* AMEs
+est restore MSICPS
+margins, dydx(i.slb) predict(outcome(1)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_SICPS_MARG_1
+
+est restore MSICPS
+margins, dydx(i.slb) predict(outcome(2)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_SICPS_MARG_2
+
+est restore MSICPS
+margins, dydx(i.slb) predict(outcome(3)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_SICPS_MARG_3
+
+est restore MSICPS
+margins, dydx(i.slb) predict(outcome(4)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_SICPS_MARG_4
+
+est restore MSICPS
+margins, dydx(i.slb) predict(outcome(5)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_SICPS_MARG_5
+
+
+
+est restore MPICPS
+margins, dydx(i.slb) predict(outcome(1)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_PICPS_MARG_1
+
+est restore MPICPS
+margins, dydx(i.slb) predict(outcome(2)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_PICPS_MARG_2
+
+est restore MPICPS
+margins, dydx(i.slb) predict(outcome(3)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_PICPS_MARG_3
+
+est restore MPICPS
+margins, dydx(i.slb) predict(outcome(4)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_PICPS_MARG_4
+
+est restore MPICPS
+margins, dydx(i.slb) predict(outcome(5)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_PICPS_MARG_5
+
+
+
+est restore MBICPS
+margins, dydx(i.slb) predict(outcome(1)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_BICPS_MARG_1
+
+est restore MBICPS
+margins, dydx(i.slb) predict(outcome(2)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_BICPS_MARG_2
+
+est restore MBICPS
+margins, dydx(i.slb) predict(outcome(3)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_BICPS_MARG_3
+
+est restore MBICPS
+margins, dydx(i.slb) predict(outcome(4)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_BICPS_MARG_4
+
+est restore MBICPS
+margins, dydx(i.slb) predict(outcome(5)) vce(svy) subpop(if ALL_COMPLETE_IC) post
+est store M_BICPS_MARG_5
+
+
+esttab M_SICPS_MARG_1 M_SICPS_MARG_2 M_SICPS_MARG_3 M_SICPS_MARG_4 M_SICPS_MARG_5 using "AME_SICPS.csv", ///
+	se nogaps label b(%9.3f) se(%9.3f) ///
+    star(* 0.05 ** 0.01 *** 0.001) compress replace ///
+    title("Average Marginal Effects of slb on Pr(all levels) across Sick outcome") ///
+    mtitles("Care: level 1" "Care: level 2" "Care: level 3" "Care: level 4" "Care: level 5")
+
+
+esttab M_PICPS_MARG_1 M_PICPS_MARG_2 M_PICPS_MARG_3 M_PICPS_MARG_4 M_PICPS_MARG_5 using "AME_PICPS.csv", ///
+	se nogaps label b(%9.3f) se(%9.3f) ///
+    star(* 0.05 ** 0.01 *** 0.001) compress replace ///
+    title("Average Marginal Effects of slb on Pr(all levels) across Poor outcome") ///
+    mtitles("Care: level 1" "Care: level 2" "Care: level 3" "Care: level 4" "Care: level 5")
+	
+	
+esttab M_BICPS_MARG_1 M_BICPS_MARG_2 M_BICPS_MARG_3 M_BICPS_MARG_4 M_BICPS_MARG_5 using "AME_BICPS.csv", ///
+	se nogaps label b(%9.3f) se(%9.3f) ///
+    star(* 0.05 ** 0.01 *** 0.001) compress replace ///
+    title("Average Marginal Effects of slb on Pr(all levels) across Black outcome") ///
+    mtitles("Care: level 1" "Care: level 2" "Care: level 3" "Care: level 4" "Care: level 5")
+
+
+
+* * Robustness 
+* Institutional location interaction with year  
+svy, subpop(ALL_COMPLETE_IC): mlogit care_s i.genVslbind##c.year i.race i.fborn i.female c.age c.educ_bc c.realinc10k i.polaf i.relig_pon i.region c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, baseoutcome(1) rrr
+* SW odds increase 1.08 with add year on outcome 4 	
+
+svy, subpop(ALL_COMPLETE_IC): mlogit care_p i.genVslbind##c.year i.race i.fborn i.female c.age c.educ_bc c.realinc10k i.polaf i.relig_pon i.region c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, baseoutcome(1) rrr
+* L&J & Teachers odds increase 1.08 1.03 with add year on outcome 5
+
+svy, subpop(ALL_COMPLETE_IC): mlogit care_b i.genVslbind##c.year i.race i.fborn i.female c.age c.educ_bc c.realinc10k i.polaf i.relig_pon i.region c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, baseoutcome(1) rrr
+
+
+
+* Institutional location interaction with political affiliation 
+* Have to use aggregated genVslb 
+svy, subpop(ALL_COMPLETE_IC): mlogit care_s i.genVslb##i.polaf i.female c.age c.educ_bc c.realinc10k i.relig_pon i.race i.fborn i.region i.year c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, baseoutcome(1) rrr
+est store MS_POLAF_INT
+
+testparm i.genVslb#i.polaf
+* not significant predictor
+
+svy, subpop(ALL_COMPLETE_IC): mlogit care_p i.genVslb##i.polaf i.female c.age c.educ_bc c.realinc10k i.relig_pon i.race i.fborn i.region i.year c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, baseoutcome(1) rrr
+est store MP_POLAF_INT
+
+testparm i.genVslb#i.polaf
+* not significant predictor
+
+svy, subpop(ALL_COMPLETE_IC): mlogit care_b i.genVslb##i.polaf i.female c.age c.educ_bc c.realinc10k i.relig_pon i.race i.fborn i.region i.year c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, baseoutcome(1) rrr
+est store MB_POLAF_INT
+
+testparm i.genVslb#i.polaf
+* not significant predictor
+
+
+* Ordered and generalized ordered logic models 
+svy: ologit care_s i.genVslbind i.race i.fborn i.female c.age c.educ_bc c.realinc10k i.polaf i.relig_pon i.region i.year c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, or
+oparallel
+
+* gsvy: gologit2 care_s i.genVslbind i.race i.fborn i.female c.age c.educ_bc c.realinc10k i.polaf i.relig_pon i.region i.year c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, or autofit
+* no convergence
+
+svy: ologit care_p i.genVslbind i.race i.fborn i.female c.age c.educ_bc c.realinc10k i.polaf i.relig_pon i.region i.year c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, or
+oparallel
+
+* gsvy: gologit2 care_p i.genVslbind i.race i.fborn i.female c.age c.educ_bc c.realinc10k i.polaf i.relig_pon i.region i.year c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, or autofit
+* no convergence
+
+svy: ologit care_b i.genVslbind i.race i.fborn i.female c.age c.educ_bc c.realinc10k i.polaf i.relig_pon i.region i.year c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, or
+oparallel
+
+* gsvy: gologit2 care_b i.genVslbind i.race i.fborn i.female c.age c.educ_bc c.realinc10k i.polaf i.relig_pon i.region i.year c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, or autofit
+* no convergence
+
+
+
+
+
+
+
+
+
