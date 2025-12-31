@@ -379,7 +379,6 @@ rename VPSU vpsu
 svyset [pweight = wtssps], strata(vstrat) psu(vpsu) singleunit(scaled)
 
 
-
 * * OCC controls
 gen ba_plus = (educ_bc >= 16) if !missing(educ_bc)
 gen nonwhite = (race != 0) if !missing(race)
@@ -430,12 +429,12 @@ lowess care_b realinc10k
 sum age educ_bc realinc10k, detail 
 
 
-* care_s
-* Multicolinearity
+* * care_s
+* * Multicolinearity
 regress care_s i.genVslbind i.polaf i.female c.age c.educ_bc c.realinc10k i.relig_pon i.race i.region c.year i.fborn c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss
 vif
 
-* Fit
+* * Fit
 svy: mlogit care_s i.genVslbind i.polaf i.female c.age i.health c.educ_bc c.realinc10k i.relig_pon i.race i.region i.year i.fborn c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss
 
 testparm i.genVslbind
@@ -455,12 +454,12 @@ test c.educ_bc = 0
 test c.realinc10k = 0
 
 
-* care_p
-* Multicolinearity
+* * care_p
+* * Multicolinearity
 regress care_p i.genVslbind i.polaf i.female c.age c.educ_bc c.realinc10k i.relig_pon i.race i.region i.year i.fborn c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss
 vif
 
-* Fit
+* * Fit
 svy: mlogit care_p i.genVslbind i.polaf i.female c.age c.educ_bc c.realinc10k i.relig_pon i.race i.region i.year i.fborn c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss
 
 testparm i.genVslbind
@@ -479,12 +478,12 @@ test c.educ_bc = 0
 test c.realinc10k = 0
 
 
-* care_b
-* Multicolinearity
+* * care_b
+* * Multicolinearity
 regress care_b i.genVslbind i.polaf i.female c.age c.educ_bc c.realinc10k i.relig_pon i.race i.region i.year i.fborn c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss
 vif
 
-* Fit
+* * Fit
 svy: mlogit care_b i.genVslbind i.polaf i.female c.age c.educ_bc c.realinc10k i.relig_pon i.race i.region i.year i.fborn c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss
 
 testparm i.genVslbind
@@ -503,8 +502,7 @@ test c.educ_bc = 0
 test c.realinc10k = 0
 
 
-
-* * * Common sample
+* * Common sample
 gen ALL_COMPLETE_IC = 1 if !missing(care_p, care_s, care_b, genVslbind, race, female, age, educ_bc, realinc10k, polaf, relig_pon, region, year, fborn, z_occ_pct_female, z_occ_pct_ba, z_occ_mean_inc, z_occ_mean_pres, z_occ_pct_nonwhite) & wtssps > 0
 replace ALL_COMPLETE_IC = 0 if missing(ALL_COMPLETE_IC)
 
@@ -619,7 +617,6 @@ margins, dydx(i.genVslbind) predict(outcome(5)) vce(svy) subpop(if ALL_COMPLETE_
 est store M_SIC_MARG_5
 
 
-
 est restore MPIC
 margins, dydx(i.genVslbind) predict(outcome(1)) vce(svy) subpop(if ALL_COMPLETE_IC) post
 est store M_PIC_MARG_1
@@ -639,7 +636,6 @@ est store M_PIC_MARG_4
 est restore MPIC
 margins, dydx(i.genVslbind) predict(outcome(5)) vce(svy) subpop(if ALL_COMPLETE_IC) post
 est store M_PIC_MARG_5
-
 
 
 est restore MBIC
@@ -736,7 +732,6 @@ margins, dydx(i.slb) predict(outcome(5)) vce(svy) subpop(if ALL_COMPLETE_IC) pos
 est store M_SICPS_MARG_5
 
 
-
 est restore MPICPS
 margins, dydx(i.slb) predict(outcome(1)) vce(svy) subpop(if ALL_COMPLETE_IC) post
 est store M_PICPS_MARG_1
@@ -756,7 +751,6 @@ est store M_PICPS_MARG_4
 est restore MPICPS
 margins, dydx(i.slb) predict(outcome(5)) vce(svy) subpop(if ALL_COMPLETE_IC) post
 est store M_PICPS_MARG_5
-
 
 
 est restore MBICPS
@@ -804,14 +798,11 @@ esttab M_BICPS_MARG_1 M_BICPS_MARG_2 M_BICPS_MARG_3 M_BICPS_MARG_4 M_BICPS_MARG_
 
 * * Robustness 
 * Institutional location interaction with year  
-svy, subpop(ALL_COMPLETE_IC): mlogit care_s i.genVslbind##c.year i.race i.fborn i.female c.age c.educ_bc c.realinc10k i.polaf i.relig_pon i.region c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, baseoutcome(1) rrr
-* SW odds increase 1.08 with add year on outcome 4 	
+svy, subpop(ALL_COMPLETE_IC): mlogit care_s i.genVslbind##c.year i.race i.fborn i.female c.age c.educ_bc c.realinc10k i.polaf i.relig_pon i.region c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, baseoutcome(1) rrr	
 
 svy, subpop(ALL_COMPLETE_IC): mlogit care_p i.genVslbind##c.year i.race i.fborn i.female c.age c.educ_bc c.realinc10k i.polaf i.relig_pon i.region c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, baseoutcome(1) rrr
-* L&J & Teachers odds increase 1.08 1.03 with add year on outcome 5
 
 svy, subpop(ALL_COMPLETE_IC): mlogit care_b i.genVslbind##c.year i.race i.fborn i.female c.age c.educ_bc c.realinc10k i.polaf i.relig_pon i.region c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, baseoutcome(1) rrr
-
 
 
 * Institutional location interaction with political affiliation 
@@ -820,19 +811,16 @@ svy, subpop(ALL_COMPLETE_IC): mlogit care_s i.genVslb##i.polaf i.female c.age c.
 est store MS_POLAF_INT
 
 testparm i.genVslb#i.polaf
-* not significant predictor
 
 svy, subpop(ALL_COMPLETE_IC): mlogit care_p i.genVslb##i.polaf i.female c.age c.educ_bc c.realinc10k i.relig_pon i.race i.fborn i.region i.year c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, baseoutcome(1) rrr
 est store MP_POLAF_INT
 
 testparm i.genVslb#i.polaf
-* not significant predictor
 
 svy, subpop(ALL_COMPLETE_IC): mlogit care_b i.genVslb##i.polaf i.female c.age c.educ_bc c.realinc10k i.relig_pon i.race i.fborn i.region i.year c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, baseoutcome(1) rrr
 est store MB_POLAF_INT
 
 testparm i.genVslb#i.polaf
-* not significant predictor
 
 
 * Ordered and generalized ordered logic models 
@@ -840,7 +828,6 @@ svy: ologit care_s i.genVslbind i.race i.fborn i.female c.age c.educ_bc c.realin
 oparallel
 
 * gsvy: gologit2 care_s i.genVslbind i.race i.fborn i.female c.age c.educ_bc c.realinc10k i.polaf i.relig_pon i.region i.year c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, or autofit
-* no convergence
 
 svy: ologit care_p i.genVslbind i.race i.fborn i.female c.age c.educ_bc c.realinc10k i.polaf i.relig_pon i.region i.year c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, or
 oparallel
@@ -852,7 +839,6 @@ svy: ologit care_b i.genVslbind i.race i.fborn i.female c.age c.educ_bc c.realin
 oparallel
 
 * gsvy: gologit2 care_b i.genVslbind i.race i.fborn i.female c.age c.educ_bc c.realinc10k i.polaf i.relig_pon i.region i.year c.z_occ_pct_female c.z_occ_pct_ba c.z_occ_mean_inc c.z_occ_mean_pres c.z_occ_pct_nonwhite i.occ_miss, or autofit
-* no convergence
 
 
 
